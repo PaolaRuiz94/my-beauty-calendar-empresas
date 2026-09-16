@@ -15,7 +15,7 @@ function generateStoreId(name) {
 // Escribe en `peluquerias`, la misma colección que lee el consumidor (ExplorarScreen.js),
 // para que una tienda creada acá aparezca ahí sin cambios del lado del consumidor.
 // direccion/tipo/horarios/especialidades quedan en null hasta completarse desde "Mi perfil".
-export async function registerStore({ name, city, whatsapp, website, email, password }) {
+export async function registerStore({ name, city, whatsapp, website, businessType, email, password }) {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   const uid = credential.user.uid;
 
@@ -31,6 +31,7 @@ export async function registerStore({ name, city, whatsapp, website, email, pass
     ciudad: city,
     telefono: whatsapp,
     website: website ? website.trim() : null,
+    businessType,
     email,
     storeId,
     ownerId: uid,
@@ -68,4 +69,8 @@ export async function logoutStore() {
 
 export async function updateStoreWebsite(storeId, website) {
   await updateDoc(doc(db, 'peluquerias', storeId), { website: website ? website.trim() : null });
+}
+
+export async function updateStoreHorarios(storeId, horarios) {
+  await updateDoc(doc(db, 'peluquerias', storeId), { horarios });
 }

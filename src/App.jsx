@@ -4,6 +4,8 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Services from './pages/Services';
+import Agenda from './pages/Agenda';
 import './index.css';
 
 function PrivateRoute({ children }) {
@@ -26,6 +28,8 @@ function AppRoutes() {
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/dashboard/productos" element={<PrivateRoute><Products /></PrivateRoute>} />
+      <Route path="/dashboard/servicios" element={<PrivateRoute><Services /></PrivateRoute>} />
+      <Route path="/dashboard/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
     </Routes>
   );
 }

@@ -6,7 +6,7 @@ import { useStore } from '../context/StoreContext';
 export default function Register() {
   const navigate = useNavigate();
   const { setStore } = useStore();
-  const [form, setForm] = useState({ name: '', city: '', whatsapp: '', website: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', city: '', whatsapp: '', website: '', businessType: 'tienda', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -38,6 +38,13 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label>Tipo de negocio</label>
+            <select name="businessType" value={form.businessType} onChange={handleChange}>
+              <option value="tienda">Tienda multimarca (vendo productos)</option>
+              <option value="peluqueria">Peluquería (agendo citas)</option>
+            </select>
+          </div>
           <div className="form-group">
             <label>Nombre del negocio</label>
             <input

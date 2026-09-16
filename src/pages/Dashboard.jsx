@@ -1,13 +1,31 @@
 import { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { logoutStore, updateStoreWebsite } from '../firebase/auth';
+import { logoutStore, updateStoreWebsite, updateStoreHorarios } from '../firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
+
+const DIAS = [
+  ['lunes', 'Lunes'], ['martes', 'Martes'], ['miercoles', 'Miércoles'],
+  ['jueves', 'Jueves'], ['viernes', 'Viernes'], ['sabado', 'Sábado'], ['domingo', 'Domingo'],
+];
+
+function horariosFromStore(store) {
+  const h = store?.horarios || {};
+  const result = {};
+  for (const [key] of DIAS) {
+    const rango = Array.isArray(h[key]) && h[key][0] ? h[key][0] : null;
+    result[key] = { abierto: !!rango, inicio: rango?.inicio || '09:00', fin: rango?.fin || '18:00' };
+  }
+  return result;
+}
 
 export default function Dashboard() {
   const { store, setStore } = useStore();
   const navigate = useNavigate();
+  const isPeluqueria = store?.businessType === 'peluqueria';
   const [website, setWebsite] = useState(store?.website || '');
   const [savingWebsite, setSavingWebsite] = useState(false);
+  const [horarios, setHorarios] = useState(() => horariosFromStore(store));
+  const [savingHorarios, setSavingHorarios] = useState(false);
 
   async function handleLogout() {
     await logoutStore();
@@ -23,6 +41,26 @@ export default function Dashboard() {
       setStore({ ...store, website: website ? website.trim() : null });
     } finally {
       setSavingWebsite(false);
+    }
+  }
+
+  function handleDayChange(day, field, value) {
+    setHorarios(h => ({ ...h, [day]: { ...h[day], [field]: value } }));
+  }
+
+  async function handleSaveHorarios(e) {
+    e.preventDefault();
+    setSavingHorarios(true);
+    try {
+      const data = {};
+      for (const [key] of DIAS) {
+        const d = horarios[key];
+        data[key] = d.abierto ? [{ inicio: d.inicio, fin: d.fin }] : null;
+      }
+      await updateStoreHorarios(store.storeId, data);
+      setStore({ ...store, horarios: data });
+    } finally {
+      setSavingHorarios(false);
     }
   }
 
@@ -60,17 +98,65 @@ export default function Dashboard() {
           </div>
         </form>
 
+        {isPeluqueria && (
+          <form onSubmit={handleSaveHorarios} className="welcome-card">
+            <h3>Horarios de atención</h3>
+            <p>Definí en qué días y horarios atendés — de eso depende qué turnos les aparecen disponibles a tus clientes.</p>
+            {DIAS.map(([key, label]) => (
+              <div key={key} className="form-row" style={{ alignItems: 'center' }}>
+                <label style={{ width: '110px' }}>
+                  <input
+                    type="checkbox"
+                    checked={horarios[key].abierto}
+                    onChange={e => handleDayChange(key, 'abierto', e.target.checked)}
+                  />{' '}
+                  {label}
+                </label>
+                {horarios[key].abierto && (
+                  <>
+                    <input
+                      type="time"
+                      value={horarios[key].inicio}
+                      onChange={e => handleDayChange(key, 'inicio', e.target.value)}
+                    />
+                    <span>a</span>
+                    <input
+                      type="time"
+                      value={horarios[key].fin}
+                      onChange={e => handleDayChange(key, 'fin', e.target.value)}
+                    />
+                  </>
+                )}
+              </div>
+            ))}
+            <div className="form-actions">
+              <button type="submit" className="btn-primary" disabled={savingHorarios}>
+                {savingHorarios ? 'Guardando...' : 'Guardar horarios'}
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="coming-soon-grid">
           <Link to="/dashboard/productos" className="coming-soon-card coming-soon-card-active">
             <span className="card-icon">📦</span>
             <h4>Mis productos</h4>
             <p>Gestiona tu catálogo</p>
           </Link>
-          <div className="coming-soon-card">
-            <span className="card-icon">🔗</span>
-            <h4>Mi link</h4>
-            <p>Próximamente</p>
-          </div>
+          {isPeluqueria && (
+            <>
+              <Link to="/dashboard/servicios" className="coming-soon-card coming-soon-card-active">
+                <span className="card-icon">✂️</span>
+                <h4>Mis servicios</h4>
+                <p>Gestiona lo que ofrecés</p>
+              </Link>
+              <Link to="/dashboard/agenda" className="coming-soon-card coming-soon-card-active">
+                <span className="card-icon">📅</span>
+                <h4>Mi agenda</h4>
+                <p>Citas de tus clientes</p>
+              </Link>
+            </>
+          )}
           <div className="coming-soon-card">
             <span className="card-icon">📊</span>
             <h4>Métricas</h4>
