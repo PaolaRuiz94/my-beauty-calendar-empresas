@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerStore } from '../firebase/auth';
 import { useStore } from '../context/StoreContext';
+import logo from '../assets/logo.png';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function Register() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>My Beauty Calendar</h1>
+          <img src={logo} alt="My Beauty Calendar" className="auth-logo" />
           <p>Crea la cuenta de tu peluquería</p>
         </div>
 
