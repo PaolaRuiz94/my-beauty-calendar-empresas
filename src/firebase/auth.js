@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 
 function generateStoreId(name) {
@@ -15,7 +15,7 @@ function generateStoreId(name) {
 // Escribe en `peluquerias`, la misma colección que lee el consumidor (ExplorarScreen.js),
 // para que una tienda creada acá aparezca ahí sin cambios del lado del consumidor.
 // direccion/tipo/horarios/especialidades quedan en null hasta completarse desde "Mi perfil".
-export async function registerStore({ name, city, whatsapp, email, password }) {
+export async function registerStore({ name, city, whatsapp, website, email, password }) {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   const uid = credential.user.uid;
 
@@ -30,6 +30,7 @@ export async function registerStore({ name, city, whatsapp, email, password }) {
     nombre: name,
     ciudad: city,
     telefono: whatsapp,
+    website: website ? website.trim() : null,
     email,
     storeId,
     ownerId: uid,
@@ -63,4 +64,8 @@ export async function loginStore(email, password) {
 
 export async function logoutStore() {
   await signOut(auth);
+}
+
+export async function updateStoreWebsite(storeId, website) {
+  await updateDoc(doc(db, 'peluquerias', storeId), { website: website ? website.trim() : null });
 }

@@ -6,7 +6,7 @@ import { useStore } from '../context/StoreContext';
 export default function Register() {
   const navigate = useNavigate();
   const { setStore } = useStore();
-  const [form, setForm] = useState({ name: '', city: '', whatsapp: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', city: '', whatsapp: '', website: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -66,6 +66,15 @@ export default function Register() {
               onChange={handleChange}
               placeholder="+57 300 123 4567"
               required
+            />
+          </div>
+          <div className="form-group">
+            <label>Sitio web (opcional)</label>
+            <input
+              name="website"
+              value={form.website}
+              onChange={handleChange}
+              placeholder="https://tutienda.co"
             />
           </div>
           <div className="form-group">

@@ -8,7 +8,7 @@ import { TAG_OPTIONS, CATEGORY_OPTIONS, WEIGHT_CLASS_CATEGORIES, WEIGHT_CLASS_OP
 
 const EMPTY_FORM = {
   name: '', brand: '', description: '', category: CATEGORY_OPTIONS[0],
-  tags: [], weightClass: '', price: '', image: '',
+  tags: [], weightClass: '', price: '', image: '', externalProductId: '',
 };
 
 export default function Products() {
@@ -55,6 +55,7 @@ export default function Products() {
       weightClass: product.weightClass || '',
       price: product.price ?? '',
       image: product.image || '',
+      externalProductId: product.externalProductId || '',
     });
     setEditingId(product.id);
     setFormOpen(true);
@@ -85,6 +86,7 @@ export default function Products() {
       weightClass: needsWeightClass ? (form.weightClass || null) : null,
       price: form.price === '' ? null : Number(form.price),
       image: form.image.trim(),
+      externalProductId: form.externalProductId.trim() || null,
     };
     try {
       if (editingId) {
@@ -151,6 +153,7 @@ export default function Products() {
           weightClass: needsWeight ? (it.weightClass || null) : null,
           price: it.price ?? null,
           image: it.image || '',
+          externalProductId: it.externalProductId || null,
         });
       }
       setImportMessage(`Listo: se cargaron ${items.length} productos.`);
@@ -186,7 +189,7 @@ export default function Products() {
         {importOpen && (
           <div className="product-form">
             <h3>Importar catálogo (reemplaza todo lo existente)</h3>
-            <p>Pegá un array JSON con los campos: name, brand, description, category, tags[], weightClass, price, image. Esto borra primero todos los productos actuales de esta tienda.</p>
+            <p>Pegá un array JSON con los campos: name, brand, description, category, tags[], weightClass, price, image, externalProductId (opcional). Esto borra primero todos los productos actuales de esta tienda.</p>
             <textarea
               rows={10}
               style={{ width: '100%', fontFamily: 'monospace' }}
@@ -250,6 +253,11 @@ export default function Products() {
             <div className="form-group">
               <label>URL de imagen</label>
               <input name="image" value={form.image} onChange={handleChange} placeholder="https://..." />
+            </div>
+
+            <div className="form-group">
+              <label>ID externo (opcional — ej. ID real en la tienda online, para "Comprar")</label>
+              <input name="externalProductId" value={form.externalProductId} onChange={handleChange} placeholder="78665" />
             </div>
 
             <div className="form-group">
