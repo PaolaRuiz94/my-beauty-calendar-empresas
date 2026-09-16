@@ -1,13 +1,15 @@
-import { collection, doc, updateDoc, writeBatch, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, doc, updateDoc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { db } from './config';
 
 // Citas agendadas por clientes desde la app de consumidores: reservas/{reservaId}
 // storeId identifica a qué peluquería pertenece cada cita.
+// Se ordena en el cliente (por fecha y hora) para no depender de un índice
+// compuesto de Firestore para storeId + fecha.
 export async function getStoreReservas(storeId) {
-  const snap = await getDocs(
-    query(collection(db, 'reservas'), where('storeId', '==', storeId), orderBy('fecha', 'asc'))
-  );
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const snap = await getDocs(query(collection(db, 'reservas'), where('storeId', '==', storeId)));
+  const reservas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  reservas.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+  return reservas;
 }
 
 export async function confirmReserva(reservaId) {
