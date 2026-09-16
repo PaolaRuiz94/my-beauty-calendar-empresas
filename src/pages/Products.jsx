@@ -20,10 +20,6 @@ export default function Products() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [importMessage, setImportMessage] = useState('');
 
   useEffect(() => {
     loadProducts();
@@ -112,60 +108,6 @@ export default function Products() {
     }
   }
 
-  async function handleImport() {
-    setImportMessage('');
-    let items;
-    try {
-      items = JSON.parse(importText);
-      if (!Array.isArray(items)) throw new Error('not an array');
-    } catch {
-      setImportMessage('El JSON no es válido o no es un array.');
-      return;
-    }
-
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      if (!CATEGORY_OPTIONS.includes(it.category)) {
-        setImportMessage(`Producto #${i + 1} ("${it.name || 'sin nombre'}"): category "${it.category}" no coincide con ninguna opción de la taxonomía.`);
-        return;
-      }
-      if (!Array.isArray(it.tags) || it.tags.length === 0 || it.tags.some(t => !TAG_OPTIONS.includes(t))) {
-        setImportMessage(`Producto #${i + 1} ("${it.name || 'sin nombre'}"): tags inválidos (deben ser un array no vacío de la taxonomía).`);
-        return;
-      }
-    }
-
-    if (!confirm(`Esto va a borrar los ${products.length} productos actuales de esta tienda y cargar ${items.length} nuevos. ¿Continuar?`)) return;
-
-    setImporting(true);
-    try {
-      for (const p of products) {
-        await deleteStoreProduct(store.storeId, p.id);
-      }
-      for (const it of items) {
-        const needsWeight = WEIGHT_CLASS_CATEGORIES.includes(it.category);
-        await addStoreProduct(store.storeId, {
-          name: it.name || '',
-          brand: it.brand || '',
-          description: it.description || '',
-          category: it.category,
-          tags: it.tags,
-          weightClass: needsWeight ? (it.weightClass || null) : null,
-          price: it.price ?? null,
-          image: it.image || '',
-          externalProductId: it.externalProductId || null,
-        });
-      }
-      setImportMessage(`Listo: se cargaron ${items.length} productos.`);
-      setImportText('');
-      setImportOpen(false);
-      await loadProducts();
-    } catch {
-      setImportMessage('Ocurrió un error durante la importación — revisá qué quedó guardado antes de reintentar.');
-    }
-    setImporting(false);
-  }
-
   const needsWeightClass = WEIGHT_CLASS_CATEGORIES.includes(form.category);
 
   return (
@@ -175,37 +117,11 @@ export default function Products() {
           <Link to="/dashboard" className="back-link">← Volver</Link>
           <h2>Mis productos</h2>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setImportOpen(o => !o)} className="btn-ghost btn-inline">
-            {importOpen ? 'Cerrar importador' : 'Importar JSON (reemplaza todo)'}
-          </button>
-          <button onClick={openNewForm} className="btn-primary btn-inline">+ Agregar producto</button>
-        </div>
+        <button onClick={openNewForm} className="btn-primary btn-inline">+ Agregar producto</button>
       </header>
 
       <main className="dashboard-main">
         {error && <p className="auth-error">{error}</p>}
-
-        {importOpen && (
-          <div className="product-form">
-            <h3>Importar catálogo (reemplaza todo lo existente)</h3>
-            <p>Pegá un array JSON con los campos: name, brand, description, category, tags[], weightClass, price, image, externalProductId (opcional). Esto borra primero todos los productos actuales de esta tienda.</p>
-            <textarea
-              rows={10}
-              style={{ width: '100%', fontFamily: 'monospace' }}
-              value={importText}
-              onChange={e => setImportText(e.target.value)}
-              placeholder="[ { &quot;name&quot;: ... } ]"
-            />
-            {importMessage && <p className="auth-error">{importMessage}</p>}
-            <div className="form-actions">
-              <button type="button" className="btn-ghost" onClick={() => setImportOpen(false)}>Cancelar</button>
-              <button type="button" className="btn-primary" onClick={handleImport} disabled={importing || !importText.trim()}>
-                {importing ? 'Importando...' : 'Reemplazar y cargar'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {formOpen && (
           <form onSubmit={handleSubmit} className="product-form">

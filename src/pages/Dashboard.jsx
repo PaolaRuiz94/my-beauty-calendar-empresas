@@ -102,33 +102,40 @@ export default function Dashboard() {
           <form onSubmit={handleSaveHorarios} className="welcome-card">
             <h3>Horarios de atención</h3>
             <p>Definí en qué días y horarios atendés — de eso depende qué turnos les aparecen disponibles a tus clientes.</p>
-            {DIAS.map(([key, label]) => (
-              <div key={key} className="form-row" style={{ alignItems: 'center' }}>
-                <label style={{ width: '110px' }}>
-                  <input
-                    type="checkbox"
-                    checked={horarios[key].abierto}
-                    onChange={e => handleDayChange(key, 'abierto', e.target.checked)}
-                  />{' '}
-                  {label}
-                </label>
-                {horarios[key].abierto && (
-                  <>
-                    <input
-                      type="time"
-                      value={horarios[key].inicio}
-                      onChange={e => handleDayChange(key, 'inicio', e.target.value)}
-                    />
-                    <span>a</span>
-                    <input
-                      type="time"
-                      value={horarios[key].fin}
-                      onChange={e => handleDayChange(key, 'fin', e.target.value)}
-                    />
-                  </>
-                )}
-              </div>
-            ))}
+            <div className="horarios-list">
+              {DIAS.map(([key, label]) => (
+                <div key={key} className="horario-row">
+                  <div className="horario-day">
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={horarios[key].abierto}
+                        onChange={e => handleDayChange(key, 'abierto', e.target.checked)}
+                      />
+                      <span className="toggle-track"><span className="toggle-thumb" /></span>
+                    </label>
+                    <span>{label}</span>
+                  </div>
+                  {horarios[key].abierto ? (
+                    <div className="horario-times">
+                      <input
+                        type="time"
+                        value={horarios[key].inicio}
+                        onChange={e => handleDayChange(key, 'inicio', e.target.value)}
+                      />
+                      <span className="horario-times-sep">a</span>
+                      <input
+                        type="time"
+                        value={horarios[key].fin}
+                        onChange={e => handleDayChange(key, 'fin', e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <span className="horario-closed">Cerrado</span>
+                  )}
+                </div>
+              ))}
+            </div>
             <div className="form-actions">
               <button type="submit" className="btn-primary" disabled={savingHorarios}>
                 {savingHorarios ? 'Guardando...' : 'Guardar horarios'}
