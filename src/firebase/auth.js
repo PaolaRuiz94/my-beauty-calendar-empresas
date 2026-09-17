@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 
@@ -65,6 +65,10 @@ export async function loginStore(email, password) {
 
 export async function logoutStore() {
   await signOut(auth);
+}
+
+export async function resetStorePassword(email) {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export async function updateStoreWebsite(storeId, website) {
