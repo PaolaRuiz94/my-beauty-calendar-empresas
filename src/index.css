@@ -470,3 +470,32 @@ body {
 .estado-pendiente { color: #B8860B; background: #FFF3D6; }
 .estado-confirmada { color: #2F855A; background: #E1F5EA; }
 .estado-cancelada { color: var(--gray); background: var(--gray-light); }
+
+/* Responsive (celular) */
+@media (max-width: 640px) {
+  .auth-container { padding: 16px; }
+  .auth-card { padding: 28px 20px; }
+  .auth-logo { width: 130px; height: 130px; }
+
+  .dashboard-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .dashboard-main { padding: 20px 16px; }
+
+  .welcome-card, .product-form { padding: 20px; }
+
+  .form-row { grid-template-columns: 1fr; }
+
+  .horario-row { flex-wrap: wrap; row-gap: 8px; }
+  .horario-times { flex-wrap: wrap; }
+
+  .tabs { width: 100%; flex-wrap: wrap; }
+  .tab { flex: 1 1 auto; justify-content: center; }
+
+  .product-grid, .coming-soon-grid {
+    grid-template-columns: 1fr;
+  }
+}
