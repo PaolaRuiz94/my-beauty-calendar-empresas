@@ -1,0 +1,6 @@
+[
+  {"brand":"Wella","name":"Shampoo Ultimate Repair x250ml","description":"Shampoo reparador de la línea Ultimate Repair, para cabello dañado o debilitado.","category":"Shampoo","tags":["reparador","daño","fortalecimiento"],"weightClass":null,"price":128520,"image":null,"active":true,"externalProductId":"80092"},
+  {"brand":"Wella","name":"Shampoo Fusion x250ml","description":"Shampoo de reparación intensa de la línea Fusion, para cabello muy dañado.","category":"Shampoo","tags":["reparador","daño","nutritivo"],"weightClass":null,"price":107100,"image":null,"active":true,"externalProductId":"79958"},
+  {"brand":"Wella","name":"Mascarilla Fusion x150ml","description":"Mascarilla de reparación intensa de la línea Fusion, aporta nutrición y brillo.","category":"Tratamiento","tags":["reparador","nutritivo","brillo"],"weightClass":null,"price":118710,"image":null,"active":true,"externalProductId":"78664"},
+  {"brand":"Ellence Professionale","name":"Kit 11 en 1 x300","description":"Tratamiento multibeneficio sin enjuague: desenreda, da brillo y controla el frizz.","category":"Tratamiento","tags":["desenredo","brillo","anti-frizz"],"weightClass":null,"price":129900,"image":null,"active":true,"externalProductId":"78031"}
+]
