@@ -358,9 +358,11 @@ body {
   padding: 3px 9px;
 }
 
-.product-card-actions { display: flex; gap: 8px; }
-.product-card-actions .btn-ghost { flex: 1; padding: 8px; }
+.product-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.product-card-actions .btn-ghost { flex: 1 1 auto; min-width: 88px; padding: 8px; }
 .btn-danger:hover { border-color: #ef4444 !important; color: #ef4444 !important; background: #fef2f2 !important; }
+
+.product-card-inactive { opacity: 0.6; }
 
 /* Horarios */
 .horarios-list { display: flex; flex-direction: column; }

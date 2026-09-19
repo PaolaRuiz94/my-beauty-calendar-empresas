@@ -5,7 +5,7 @@ import {
   getStoreServices, addStoreService, updateStoreService, deleteStoreService,
 } from '../firebase/services';
 
-const EMPTY_FORM = { nombre: '', descripcion: '', duracionMinutos: '', precio: '' };
+const EMPTY_FORM = { nombre: '', descripcion: '', duracionMinutos: '', precio: '', image: '' };
 
 export default function Services() {
   const { store } = useStore();
@@ -43,6 +43,7 @@ export default function Services() {
       descripcion: service.descripcion || '',
       duracionMinutos: service.duracionMinutos ?? '',
       precio: service.precio ?? '',
+      image: service.image || '',
     });
     setEditingId(service.id);
     setFormOpen(true);
@@ -61,6 +62,7 @@ export default function Services() {
       descripcion: form.descripcion.trim(),
       duracionMinutos: form.duracionMinutos === '' ? null : Number(form.duracionMinutos),
       precio: form.precio === '' ? null : Number(form.precio),
+      image: form.image.trim(),
     };
     try {
       if (editingId) {
@@ -83,6 +85,16 @@ export default function Services() {
       setServices(services.filter(s => s.id !== serviceId));
     } catch {
       setError('No se pudo eliminar el servicio.');
+    }
+  }
+
+  async function handleToggleActive(service) {
+    const active = !service.active;
+    try {
+      await updateStoreService(store.storeId, service.id, { active });
+      setServices(services.map(s => (s.id === service.id ? { ...s, active } : s)));
+    } catch {
+      setError('No se pudo actualizar el servicio.');
     }
   }
 
@@ -124,6 +136,11 @@ export default function Services() {
               </div>
             </div>
 
+            <div className="form-group">
+              <label>URL de imagen (opcional)</label>
+              <input name="image" value={form.image} onChange={handleChange} placeholder="https://..." />
+            </div>
+
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={() => setFormOpen(false)}>Cancelar</button>
               <button type="submit" className="btn-primary" disabled={saving}>
@@ -143,14 +160,21 @@ export default function Services() {
         ) : (
           <div className="product-grid">
             {services.map(s => (
-              <div key={s.id} className="product-card">
+              <div key={s.id} className={`product-card ${s.active === false ? 'product-card-inactive' : ''}`}>
+                {s.image && <img src={s.image} alt={s.nombre} className="product-image" />}
                 <div className="product-card-body">
                   <h4>{s.nombre}</h4>
                   {s.descripcion && <p className="product-brand">{s.descripcion}</p>}
-                  {s.duracionMinutos != null && <span className="product-category">{s.duracionMinutos} min</span>}
+                  <div>
+                    {s.duracionMinutos != null && <span className="product-category">{s.duracionMinutos} min</span>}
+                    {s.active === false && <span className="product-category estado-cancelada">Inactivo</span>}
+                  </div>
                   {s.precio != null && <p className="product-price">${s.precio.toLocaleString('es-CO')}</p>}
                   <div className="product-card-actions">
                     <button className="btn-ghost" onClick={() => openEditForm(s)}>Editar</button>
+                    <button className="btn-ghost" onClick={() => handleToggleActive(s)}>
+                      {s.active === false ? 'Activar' : 'Desactivar'}
+                    </button>
                     <button className="btn-ghost btn-danger" onClick={() => handleDelete(s.id)}>Eliminar</button>
                   </div>
                 </div>
