@@ -29,6 +29,7 @@ export async function registerStore({ name, city, whatsapp, website, businessTyp
   const data = {
     nombre: name,
     ciudad: city,
+    pais: 'Colombia',
     telefono: whatsapp,
     website: website ? website.trim() : null,
     businessType,
