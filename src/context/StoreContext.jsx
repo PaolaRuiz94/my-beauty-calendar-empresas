@@ -12,10 +12,15 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const q = query(collection(db, 'peluquerias'), where('ownerId', '==', user.uid));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          setStore({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        try {
+          const q = query(collection(db, 'peluquerias'), where('ownerId', '==', user.uid));
+          const snap = await getDocs(q);
+          setStore(snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() });
+        } catch (err) {
+          // Sin esto, un error de red o de permisos dejaba `loading` en true
+          // para siempre y la app se quedaba trabada en "Cargando...".
+          console.error('No se pudo cargar la tienda de la cuenta.', err);
+          setStore(null);
         }
       } else {
         setStore(null);
