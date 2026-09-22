@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, updateDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { auth, db } from './config';
 
 function generateStoreId(name) {
@@ -19,12 +19,7 @@ export async function registerStore({ name, city, whatsapp, website, businessTyp
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   const uid = credential.user.uid;
 
-  let storeId = generateStoreId(name);
-
-  const existing = await getDoc(doc(db, 'peluquerias', storeId));
-  if (existing.exists()) {
-    storeId = `${storeId}-2`;
-  }
+  const baseId = generateStoreId(name);
 
   const data = {
     nombre: name,
@@ -34,7 +29,6 @@ export async function registerStore({ name, city, whatsapp, website, businessTyp
     website: website ? website.trim() : null,
     businessType,
     email,
-    storeId,
     ownerId: uid,
     status: 'activo',
     direccion: null,
@@ -48,9 +42,25 @@ export async function registerStore({ name, city, whatsapp, website, businessTyp
     createdAt: serverTimestamp(),
   };
 
-  await setDoc(doc(db, 'peluquerias', storeId), data);
+  // Transacción: busca el primer storeId libre (baseId, baseId-2, baseId-3, ...) y lo
+  // reserva atómicamente, para que dos registros concurrentes con el mismo nombre no
+  // puedan pisar el documento de la tienda del otro.
+  const storeId = await runTransaction(db, async (transaction) => {
+    let candidateId = baseId;
+    let suffix = 2;
+    while (true) {
+      const ref = doc(db, 'peluquerias', candidateId);
+      const snap = await transaction.get(ref);
+      if (!snap.exists()) {
+        transaction.set(ref, { ...data, storeId: candidateId });
+        return candidateId;
+      }
+      candidateId = `${baseId}-${suffix}`;
+      suffix++;
+    }
+  });
 
-  return { ...data, id: storeId };
+  return { ...data, storeId, id: storeId };
 }
 
 export async function loginStore(email, password) {
