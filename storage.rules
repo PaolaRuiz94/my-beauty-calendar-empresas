@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// Este bucket lo usa la app de consumidoras (repo hermano my-beauty-calendar).
+// En este repo (mycalendarbeauty-empresas) Storage no se usa: las imágenes de
+// producto son URLs externas (ver src/pages/Products.jsx).
+//
+// Rutas encontradas por grep en my-beauty-calendar:
+//   progress_photos/{uid}/{archivo}   - fotos privadas de progreso (progressPhotos.js)
+//   forum_posts/{uid}/{archivo}       - imágenes adjuntas a publicaciones del foro (posts.js)
+//   profile_photos/{archivo}          - foto de perfil (ProfileScreen.js)
+//
+// NOTA sobre profile_photos: el nombre de archivo se deriva del email
+// (userEmail.replace('@','_').replace('.','_')), no del uid. El lenguaje de
+// reglas de Storage no tiene funciones de string para reproducir esa
+// transformación, así que no se puede validar que el archivo pertenece
+// exactamente a quien lo sube — solo se exige estar autenticada. Lo más
+// prolijo sería cambiar esa ruta a `profile_photos/{uid}` en el código de la
+// app consumidora, para poder cerrarla igual que progress_photos/forum_posts.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /progress_photos/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /forum_posts/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /profile_photos/{fileName} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

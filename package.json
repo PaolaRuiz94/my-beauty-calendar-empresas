@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:rules": "npx firebase-tools@latest emulators:exec --only firestore,storage \"node test/firestore.rules.test.mjs\""
   },
   "dependencies": {
     "firebase": "^12.17.1",
@@ -16,6 +17,7 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",

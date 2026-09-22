@@ -1,0 +1,187 @@
+rules_version = '2';
+
+// Este proyecto Firebase (my-beauty-calendar-72f2b) lo comparten DOS apps:
+//   - mycalendarbeauty-empresas (este repo): dashboard de las dueñas de tienda.
+//   - my-beauty-calendar (repo hermano, ~/Documents/my-beauty-calendar): app
+//     de consumidoras (Expo/React Native) — explorar tiendas, reservar citas,
+//     comunidad, diario, fotos de progreso, etc.
+//
+// Todo el modelo de abajo surge de leer el código fuente de ambos repos (no
+// hay documentación de esquema aparte). Colecciones confirmadas por grep en
+// ambos repos:
+//   peluquerias/{storeId}                          - perfil de tienda
+//   peluquerias/{storeId}/products/{id}             - catálogo propio (empresas)
+//   peluquerias/{storeId}/servicios/{id}            - servicios (empresas)
+//   peluquerias/{storeId}/slots/{id}                - horarios ocupados (consumidor crea, empresas borra)
+//   reservas/{id}                                   - citas (consumidor crea/lee/cancela, empresas confirma/cancela)
+//   resenias/{id}                                   - reseñas (consumidor)
+//   Post/{id}, Post/{id}/comments/{id}              - foro de comunidad (consumidor)
+//   users/{uid}/diary/{fecha}                       - diario privado (consumidor)
+//   users/{uid}/progressPhotos/{id}                 - fotos de progreso (consumidor, metadata; archivo en Storage)
+//   products/{id}                                   - catálogo global, hoy solo local/fallback (consumidor, sin escritura desde código)
+//   reports/{id}                                    - reportes de contenido, solo-escritura, revisión manual en consola (consumidor)
+//   error_logs/{id}                                 - logging de errores, solo-escritura (consumidor)
+//   routine_videos/{id}, tip_videos/{id}             - contenido de referencia, solo lectura (consumidor)
+//
+// Todas las pantallas de la app de consumidoras están detrás de login
+// (ver App.js: AppRouter solo monta MainTabNavigator si hay `user`), así que
+// las lecturas se restringen a usuarios autenticados en vez de dejarlas
+// públicas.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isStoreOwner(storeId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/peluquerias/$(storeId)).data.ownerId == request.auth.uid;
+    }
+
+    // ── peluquerias ────────────────────────────────────────────────────────
+    match /peluquerias/{storeId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerId == request.auth.uid;
+
+      // La dueña edita su tienda, pero no puede transferir ownerId ni tocar
+      // rating/totalResenias (ningún código cliente los escribe hoy; si se
+      // agrega un agregador de reseñas, debe ser vía Cloud Function/Admin SDK,
+      // que no pasa por estas reglas).
+      allow update: if isSignedIn() &&
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.rating == resource.data.rating &&
+        request.resource.data.totalResenias == resource.data.totalResenias;
+
+      allow delete: if false;
+
+      match /products/{productId} {
+        allow read: if isSignedIn();
+        allow write: if isStoreOwner(storeId);
+      }
+
+      match /servicios/{servicioId} {
+        allow read: if isSignedIn();
+        allow write: if isStoreOwner(storeId);
+      }
+
+      match /slots/{slotId} {
+        allow read: if isSignedIn();
+        // La clienta reserva su propio slot (createReservation, app consumidora).
+        allow create: if isSignedIn() &&
+          request.resource.data.clienteUid == request.auth.uid;
+        allow update: if false;
+        // Se libera al cancelar: la dueña (Agenda) o la propia clienta (Mis citas).
+        allow delete: if isStoreOwner(storeId) ||
+          (isSignedIn() && resource.data.clienteUid == request.auth.uid);
+      }
+    }
+
+    // ── reservas ───────────────────────────────────────────────────────────
+    match /reservas/{reservaId} {
+      allow read: if isSignedIn() &&
+        (resource.data.clienteUid == request.auth.uid || isStoreOwner(resource.data.storeId));
+
+      // Solo la clienta crea su propia reserva, y solo en estado inicial.
+      allow create: if isSignedIn() &&
+        request.resource.data.clienteUid == request.auth.uid &&
+        request.resource.data.estado == 'pendiente' &&
+        exists(/databases/$(database)/documents/peluquerias/$(request.resource.data.storeId));
+
+      // La dueña confirma/cancela; la clienta solo puede cancelar la suya.
+      // En ambos casos, solo se puede tocar el campo `estado`.
+      allow update: if (isStoreOwner(resource.data.storeId) ||
+          (isSignedIn() && resource.data.clienteUid == request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']);
+
+      allow delete: if false;
+    }
+
+    // ── resenias ───────────────────────────────────────────────────────────
+    match /resenias/{reseniaId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.clienteUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ── Post (foro de comunidad) ──────────────────────────────────────────
+    match /Post/{postId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+        request.resource.data.autorId == request.auth.uid &&
+        request.resource.data.likesUsuarios.size() == 0 &&
+        request.resource.data.commentsCount == 0;
+
+      // Dos patrones de update válidos, cada uno tocando un solo campo:
+      // togglear like (cualquier usuaria) o el contador de comentarios
+      // (se actualiza junto con addComment/deleteComment, +1/-1 por vez).
+      allow update: if isSignedIn() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesUsuarios']) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentsCount']) &&
+          (request.resource.data.commentsCount == resource.data.commentsCount + 1 ||
+           request.resource.data.commentsCount == resource.data.commentsCount - 1))
+      );
+
+      allow delete: if isSignedIn() && resource.data.autorId == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && request.resource.data.autorId == request.auth.uid;
+        allow update: if false;
+        allow delete: if isSignedIn() && resource.data.autorId == request.auth.uid;
+      }
+    }
+
+    // ── users (diario y fotos de progreso — datos privados) ───────────────
+    match /users/{userId} {
+      match /diary/{date} {
+        allow read, write: if isSignedIn() && userId == request.auth.uid;
+      }
+
+      match /progressPhotos/{photoId} {
+        allow read, create, delete: if isSignedIn() && userId == request.auth.uid;
+        allow update: if false;
+      }
+    }
+
+    // ── catálogo global (hoy solo lectura; initProducts está comentado) ───
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ── moderación / observabilidad: solo-escritura desde la app ─────────
+    match /reports/{reportId} {
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    match /error_logs/{logId} {
+      // Se registra incluso sin sesión (handler global de errores al
+      // arrancar la app, antes de que resuelva el estado de auth).
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // ── contenido de referencia (videos), administrado manualmente ────────
+    match /routine_videos/{videoId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /tip_videos/{tipId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
