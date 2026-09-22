@@ -4,6 +4,7 @@ import { useStore } from '../context/StoreContext';
 import {
   getStoreProducts, addStoreProduct, updateStoreProduct, deleteStoreProduct,
 } from '../firebase/products';
+import { uploadStoreImage } from '../firebase/storage';
 import { TAG_OPTIONS, CATEGORY_OPTIONS, WEIGHT_CLASS_CATEGORIES, WEIGHT_CLASS_OPTIONS } from '../data/productTaxonomy';
 
 const EMPTY_FORM = {
@@ -20,6 +21,7 @@ export default function Products() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -66,6 +68,21 @@ export default function Products() {
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleImageChange(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingImage(true);
+    setError('');
+    try {
+      const url = await uploadStoreImage(store.storeId, 'products', file);
+      setForm(f => ({ ...f, image: url }));
+    } catch (err) {
+      setError(err.message || 'No se pudo subir la imagen.');
+    }
+    setUploadingImage(false);
   }
 
   async function handleSubmit(e) {
@@ -167,8 +184,10 @@ export default function Products() {
             )}
 
             <div className="form-group">
-              <label>URL de imagen</label>
-              <input name="image" value={form.image} onChange={handleChange} placeholder="https://..." />
+              <label>Foto</label>
+              {form.image && <img src={form.image} alt="" className="product-image-preview" />}
+              <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploadingImage} />
+              {uploadingImage && <p className="loading-inline">Subiendo imagen...</p>}
             </div>
 
             <div className="form-group">
@@ -194,7 +213,7 @@ export default function Products() {
 
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={() => setFormOpen(false)}>Cancelar</button>
-              <button type="submit" className="btn-primary" disabled={saving}>
+              <button type="submit" className="btn-primary" disabled={saving || uploadingImage}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
             </div>

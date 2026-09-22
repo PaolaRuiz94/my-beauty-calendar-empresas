@@ -4,6 +4,7 @@ import { useStore } from '../context/StoreContext';
 import {
   getStoreServices, addStoreService, updateStoreService, deleteStoreService,
 } from '../firebase/services';
+import { uploadStoreImage } from '../firebase/storage';
 
 const EMPTY_FORM = { nombre: '', descripcion: '', duracionMinutos: '', precio: '', image: '' };
 
@@ -16,6 +17,7 @@ export default function Services() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadServices();
@@ -51,6 +53,21 @@ export default function Services() {
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleImageChange(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingImage(true);
+    setError('');
+    try {
+      const url = await uploadStoreImage(store.storeId, 'servicios', file);
+      setForm(f => ({ ...f, image: url }));
+    } catch (err) {
+      setError(err.message || 'No se pudo subir la imagen.');
+    }
+    setUploadingImage(false);
   }
 
   async function handleSubmit(e) {
@@ -137,13 +154,15 @@ export default function Services() {
             </div>
 
             <div className="form-group">
-              <label>URL de imagen (opcional)</label>
-              <input name="image" value={form.image} onChange={handleChange} placeholder="https://..." />
+              <label>Foto (opcional)</label>
+              {form.image && <img src={form.image} alt="" className="product-image-preview" />}
+              <input type="file" accept="image/*" onChange={handleImageChange} disabled={uploadingImage} />
+              {uploadingImage && <p className="loading-inline">Subiendo imagen...</p>}
             </div>
 
             <div className="form-actions">
               <button type="button" className="btn-ghost" onClick={() => setFormOpen(false)}>Cancelar</button>
-              <button type="submit" className="btn-primary" disabled={saving}>
+              <button type="submit" className="btn-primary" disabled={saving || uploadingImage}>
                 {saving ? 'Guardando...' : 'Guardar'}
               </button>
             </div>

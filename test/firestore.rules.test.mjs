@@ -43,7 +43,13 @@ function record(name, promise) {
 
 async function main() {
   const testEnv = await initializeTestEnvironment({
-    projectId: 'rules-test',
+    // Tiene que ser el mismo project id con el que arranca el emulador
+    // (.firebaserc / firebase emulators:exec, hoy my-beauty-calendar-72f2b):
+    // las reglas de Storage que llaman a firestore.get() resuelven contra el
+    // proyecto del hub del emulador, no contra el projectId que le pasemos
+    // acá — si no coinciden, firestore.get() no encuentra el doc y explota
+    // con "Null value error" aunque el dato sí exista del lado de Firestore.
+    projectId: 'my-beauty-calendar-72f2b',
     firestore: {
       rules: readFileSync(join(ROOT, 'firestore.rules'), 'utf8'),
       host: '127.0.0.1',
@@ -174,6 +180,19 @@ async function main() {
     assertFails(uploadBytes(ref(storageY, 'forum_posts/clientX_uid/2.jpg'), bytes)));
   await record('clienta Y SÍ puede leer la imagen de post de X',
     assertSucceeds(getBytes(ref(storageY, 'forum_posts/clientX_uid/1.jpg'))));
+
+  // ── Storage: fotos de producto/servicio (dueña de la tienda) ──────────
+  const storageOwnerA = ownerA.storage();
+  const storageOwnerB = ownerB.storage();
+
+  await record('dueña A puede subir una foto de producto a su propia tienda',
+    assertSucceeds(uploadBytes(ref(storageOwnerA, 'peluquerias/tienda-a/products/1.jpg'), bytes)));
+  await record('dueña B NO puede subir una foto de producto a la tienda de A',
+    assertFails(uploadBytes(ref(storageOwnerB, 'peluquerias/tienda-a/products/2.jpg'), bytes)));
+  await record('clienta X (no es dueña) NO puede subir una foto de servicio a tienda-a',
+    assertFails(uploadBytes(ref(storageX, 'peluquerias/tienda-a/servicios/1.jpg'), bytes)));
+  await record('dueña A puede subir una foto de servicio a su propia tienda',
+    assertSucceeds(uploadBytes(ref(storageOwnerA, 'peluquerias/tienda-a/servicios/1.jpg'), bytes)));
 
   await testEnv.cleanup();
 

@@ -1,13 +1,16 @@
 rules_version = '2';
 
-// Este bucket lo usa la app de consumidoras (repo hermano my-beauty-calendar).
-// En este repo (mycalendarbeauty-empresas) Storage no se usa: las imágenes de
-// producto son URLs externas (ver src/pages/Products.jsx).
+// Este bucket lo comparten las dos apps (ver firestore.rules para el detalle
+// completo del modelo compartido).
 //
-// Rutas encontradas por grep en my-beauty-calendar:
+// Rutas de la app consumidora (repo hermano my-beauty-calendar, por grep):
 //   progress_photos/{uid}/{archivo}   - fotos privadas de progreso (progressPhotos.js)
 //   forum_posts/{uid}/{archivo}       - imágenes adjuntas a publicaciones del foro (posts.js)
 //   profile_photos/{archivo}          - foto de perfil (ProfileScreen.js)
+//
+// Rutas de este repo (mycalendarbeauty-empresas):
+//   peluquerias/{storeId}/products/{archivo}   - fotos de producto (Products.jsx)
+//   peluquerias/{storeId}/servicios/{archivo}  - fotos de servicio (Services.jsx)
 //
 // NOTA sobre profile_photos: el nombre de archivo se deriva del email
 // (userEmail.replace('@','_').replace('.','_')), no del uid. El lenguaje de
@@ -30,6 +33,23 @@ service firebase.storage {
 
     match /profile_photos/{fileName} {
       allow read, write: if request.auth != null;
+    }
+
+    // Las fotos de producto/servicio se muestran con la download URL con
+    // token que devuelve getDownloadURL(), que es públicamente legible sin
+    // pasar por esta regla (así funciona Storage) — read acá solo cubre
+    // accesos directos por el SDK. La escritura sí queda atada a la dueña de
+    // la tienda, comparando contra el mismo ownerId que usa firestore.rules.
+    match /peluquerias/{storeId}/products/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        firestore.get(/databases/(default)/documents/peluquerias/$(storeId)).data.ownerId == request.auth.uid;
+    }
+
+    match /peluquerias/{storeId}/servicios/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        firestore.get(/databases/(default)/documents/peluquerias/$(storeId)).data.ownerId == request.auth.uid;
     }
 
     match /{allPaths=**} {
